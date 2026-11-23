@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Grid Games</title>
+    <style>
+/* Site navigation */
+.site-nav {
+    background-color: #e5f2f7;
+    padding: 10px;
+    text-align: center;
+    line-height: 2;
+}
+
+.site-nav a {
+    margin: 0 8px;
+}
+
+.site-nav a,
+.site-nav span {
+    white-space: nowrap;
+}
+
+.site-nav a[aria-current="page"] {
+    font-weight: bold;
+}
+
+/* Home page */
+.intro {
+    max-width: 700px;
+    margin: 24px auto;
+    padding: 0 12px;
+    font-family: Arial, sans-serif;
+}
+
+.intro section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-top: 1px solid #ccc;
+    padding: 18px 0;
+}
+
+.intro img {
+    width: 150px;
+    height: 150px;
+}
+
+.intro h2 {
+    margin: 0;
+}
+
+@media (max-width: 500px) {
+    .intro section { display: block; }
+}
+    </style>
+</head>
+<body>
+    <nav class="site-nav">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="game1.html">Memory Match</a>
+        <a href="game2.html">Robot Maze</a>
+        <a href="quiz.html">Quiz</a>
+    </nav>
+
+    <main class="intro">
+        <h1>Grid Games</h1>
+        <p>We made two games for our CS project.</p>
+
+        <section>
+            <img src="images/memory-match.png" alt="Memory Match board">
+            <div>
+                <h2>Memory Match</h2>
+                <p>Flip two cards at a time. If they match, they stay face up. Find all 8 pairs and see how many flips you used.</p>
+                <a href="game1.html">Play Memory Match</a>
+            </div>
+        </section>
+
+        <section>
+            <img src="images/robot-maze.png" alt="Robot Maze board">
+            <div>
+                <h2>Robot Maze</h2>
+                <p>Get the robot to the flag. Press <b>m</b> to open the editor, pick an example or write your own code, then click <b>Run</b>.</p>
+                <p>You get 2 points for finishing in 40 steps or less, or 1 point for finishing in 41 to 200 steps. Turning counts as a step.</p>
+                <a href="game2.html">Play Robot Maze</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

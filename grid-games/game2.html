@@ -1,0 +1,969 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+#map_area {
+    position: relative;
+    height: calc(100vh - 160px);    
+    min-height: 720px;
+}
+
+#map {
+    display: grid;
+
+    width: 600px;
+    height: 600px;
+    gap: 5px;
+
+    position: absolute;
+    top: 50px;
+    left: calc(50% - 300px);
+
+    transform-origin: top left;
+
+    transition: 0.5s
+}
+
+/* 打开编辑器时，地图缩到左侧，给右侧的代码框留出空间。 */
+#map.small {
+    left: 50px;
+    top: 70px;
+    transform: scale(0.5);
+}
+
+.cell{
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+
+    background-color: lightgray;
+    border-radius: 5px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-size: inherit;
+}
+
+.wall{
+    background-color: black;
+}
+
+.goal{
+    background-color: limegreen;
+}
+
+.start{
+    background-color: lightblue;
+}
+
+#editor{
+    position: absolute;
+
+    left: 400px;
+    right: 40px;
+    top: 25px;
+    bottom: 40px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transform: translateX(50px);
+
+    transition:0.5s;
+}
+
+#editor.visible{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+
+    transform: translateX(0);
+}
+
+#editor h2{
+    margin: 0;
+}
+
+#code{
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+
+    box-sizing: border-box;
+
+    font-family: monospace;
+    font-size: 16px;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+#editor button{
+    align-self: flex-start;
+}
+
+.controls {
+    display: flex;
+     flex-wrap: wrap;
+      gap: 8px;
+}
+
+#code_result, #trial_result{
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#create_btn {
+    position: absolute;
+
+    top: 665px;
+    left: calc(50% - 300px);
+
+    transition: 0.5s;
+}
+
+#map.small ~ #create_btn {
+    top: 385px;
+    left: 50px;
+}
+
+.robot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    font: inherit;
+    background-color: lightblue;
+}
+
+.robot:hover{
+    background-color: #80d4ff;
+    outline: 3px solid #075985;
+    outline-offset: -3px;
+    transform: none;
+}
+
+button {
+    cursor: pointer;
+    transition: 0.1s;
+}
+
+button:hover {
+    transform: scale(1.1);
+    background-color: lightblue;
+}
+
+/* Site navigation */
+.site-nav {
+    background-color: #e5f2f7;
+    padding: 10px;
+    text-align: center;
+    line-height: 2;
+}
+
+.site-nav a {
+    margin: 0 8px;
+}
+
+.site-nav a,
+.site-nav span {
+    white-space: nowrap;
+}
+
+.site-nav a[aria-current="page"] {
+    font-weight: bold;
+}
+    </style>
+</head>
+<body>
+    <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="game1.html">Memory Match</a>
+        <a href="game2.html" aria-current="page">Robot Maze</a>
+        <a href="quiz.html">Quiz</a>
+    </nav>
+	<div id="map_area">
+	    <div id="map"></div>
+
+	    <div id="editor">
+	        <h2>Robot Algorithm</h2>
+			<div class="controls">
+				<label for="algorithm_choice">Example Algorithm</label>
+				<select id="algorithm_choice"><option>My Code</option></select>
+			</div>
+
+	        <textarea id="code" aria-label="Player code" rows="10"></textarea>
+
+			<div class="controls">
+				<button onclick="test_code()">Test Code</button>
+				<button onclick="run_code()">Run</button>
+				<button onclick="stop_run()">Pause</button>
+				<button onclick="next_step()">Next Step</button>
+				<button onclick="reset_debug()">Restart Game</button>
+				<button id="trials_btn" onclick="run_trials()">Run 100 Trials</button>
+			</div>
+			<div id="code_result"></div>
+			<div id="trial_result" role="status"></div>
+		</div>
+
+		<button id="create_btn" onclick="create_map(10,10)">Create Map</button>
+	</div>
+
+	<script>
+		//--------------------地图和bot的生成及渲染//--------------------
+		// map[行][列]
+		let map = [];
+
+		// 生成x*y大小地图，0=空地，1=墙，2=终点。起点(0,0)，终点(x-1,y-1)
+		function random_map(x,y){
+			// 清空原有地图
+			map = [];
+
+			for (let i=0; i<y; i++){
+				let row = [];
+				for (let j=0; j<x; j++){
+					if (Math.random()<0.3){ // 30%概率是墙
+						row.push(1)
+					}
+					else{
+						row.push(0)
+					}
+				}
+				map.push(row);
+			}
+
+			// (0,0)起点, (x-1,y-1)终点
+			map[0][0] = 0;
+			map[y - 1][x - 1] = 2;
+		}
+		
+		// 广度优先检查地图是否有解
+		function bfs(){
+			let y = map.length
+			let x = map[0].length
+			// 待处理队列
+		    let queue = [[0, 0]];
+		    // 已探索队列
+			let visited = [];
+
+			// 创建一个全都为false的空地图
+		    for (let i = 0; i < y; i++) {
+		        visited.push(Array(x).fill(false));
+		    }
+
+			// 把起点标记为已访问
+		    visited[0][0] = true;
+
+		    let directions = [
+		        [0, 1],
+		        [1, 0],
+		        [0, -1],
+		        [-1, 0]
+		    ];
+
+			// 读取队列的指针
+		    let index = 0;
+
+		    while (index < queue.length) {
+		        let current = queue[index];
+
+		        let row = current[0];
+		        let col = current[1];
+
+		        index += 1;
+
+				// 终点？
+		        if (row == y-1 && col == x-1) {
+		            return true;
+		        }
+
+				// 遍历四个方向
+		        for (let i = 0; i < 4; i++) {
+					// 新目标位置
+		            let newRow = row + directions[i][0];
+		            let newCol = col + directions[i][1];
+
+					// 越界检查
+		            if (newRow < 0 || newRow >= y ||
+		                newCol < 0 || newCol >= x) {
+							// 跳过本次循环其余代码，直接下一次循环
+		                	continue;
+		            }
+
+					// 如果 新位置没有访问过 且 不是墙 -> 新的可能路径，加入待处理队列
+		            if (!visited[newRow][newCol] &&
+		                map[newRow][newCol] !== 1) {
+
+		                // 标记新位置为已探索
+		                visited[newRow][newCol] = true;
+						// 加入待处理队列
+		                queue.push([newRow, newCol]);
+		            }
+		        }
+		    }
+			// 无解
+		    return false;
+		}	
+		
+		// random_map()生成地图后，bfs() 检查是否有解，没有解就重新生成，直到有解为止
+		function generate_map(x, y){
+		    random_map(x, y);
+
+		    while (!bfs()){
+		        random_map(x, y);
+		    }
+		}
+
+		// 把地图显示到html上
+		function show_map(){
+		    let map_div = document.getElementById("map");
+			let rows = map.length;
+			let cols = map[0].length;
+
+			// 计算格子大小，给emoji用，格子实际大小在css
+			let cellSize = Math.min(
+			    (600 - (cols - 1) * 5) / cols,
+			    (600 - (rows - 1) * 5) / rows
+			);
+
+			map_div.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+			map_div.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+			map_div.style.fontSize = cellSize * 0.6 + "px";
+
+		    map_div.innerHTML = "";
+
+			// 循环创建，每格是一个小div，class: cell，id: cell_row_col
+		    for (let i = 0; i < map.length; i++) {
+		        for (let j = 0; j < map[i].length; j++) {
+					// 创建小div，赋值classname和id
+		            let cell = document.createElement("div");
+		            cell.className = "cell";
+					cell.id = "cell_" + i + "_" + j;
+
+					// 增加class，start wall goal
+		            if (i == 0 && j == 0) {
+		                cell.classList.add("start");
+		            }
+		            else if (map[i][j] == 1) {
+		                cell.classList.add("wall");
+		            }
+		            else if (map[i][j] == 2) {
+		                cell.classList.add("goal");
+		                cell.innerHTML = "🏁";
+		            }
+
+					// 将小div作为子元素加进map_div
+		            map_div.appendChild(cell);
+		        }
+		    }
+		}
+
+		// 生成有解地图，显示到html上，并初始化机器人及运行状态
+		function create_map(x, y){
+			generate_map(x, y);
+			show_map();
+			reset_debug();
+		}
+
+		// 按m键切换地图大小，显示或隐藏编辑器
+		function change_map_size(){
+		    document.addEventListener("keydown", (event) => {
+
+		        // 在编辑器里打字时，禁用缩放
+		        if (event.target.matches("textarea, input, select")){
+		            return;
+		        }
+
+				// 按下的按键是m，且不是重复触发的
+		        if (event.key === "m" && !event.repeat){
+
+		            let map_div = document.getElementById("map");
+		            let editor = document.getElementById("editor");
+
+					// toggle: 有这个类就删除，没有就添加
+		            map_div.classList.toggle("small");
+		            editor.classList.toggle("visible");
+		        }
+		    });
+		}
+
+		// 整张地图共用一个机器人按钮，移动时把它放进新的格子。
+		const robot_button = document.createElement("button");
+		robot_button.type = "button";
+		robot_button.className = "robot";
+		robot_button.title = "Next Step";
+		robot_button.setAttribute("aria-label", "Robot: next step");
+		robot_button.onclick = next_step;
+
+		function show_robot(){
+			let current_cell = document.getElementById(
+				"cell_" + robot_row + "_" + robot_col
+			);
+			let arrows = ["⬆️", "➡️", "⬇️", "⬅️"];
+			robot_button.textContent = arrows[robot_direction];
+
+			if (robot_button.parentElement !== current_cell) {
+				current_cell.appendChild(robot_button);
+			}
+		}
+
+
+		//--------------------机器人状态、方向与代码加载--------------------
+		let robot_row = 0;
+		let robot_col = 0;
+		let robot_direction = 1;
+		let steps = 0;
+
+		let directions = [
+			[-1, 0],
+			[0, 1],
+			[1, 0],
+			[0, -1]
+		];
+
+		// js的变量可以存函数
+		// 玩家编写的decide()函数会被存放到player_decide这个变量里
+		// 这个函数会在主线程里被调用，传入三个布尔值，返回一个动作字符串
+		let player_decide = null;
+
+		//新的一张测试地图开始时，游戏可以重新执行 make_decide()，从而得到一个重新初始化状态的 decide 函数
+
+		// 通过new Function()把玩家输入的代码编译成一个函数，返回这个函数
+		function compile_player(code){
+			// 条件 ? 条件成立时的值 : 条件不成立时的值
+			// 如果玩家代码里没有定义decide()函数，就返回null，否则返回decide()函数本身
+			return new Function(code + "\nreturn typeof decide === 'function' ? decide : null;");
+		}
+
+		// 返回decide()函数
+		function load_player(make_decide){
+			// make_decide() 执行玩家的代码定义，判断函数合法性，然后返回其中的 decide 函数
+			let decide = make_decide();
+			// 如果没有定义decide()函数，就抛出异常
+			if (typeof decide !== "function"){
+				// 主动抛出错误，中断当前正常执行流程
+				throw new Error("Please define a decide() function");
+			}
+			return decide;
+		}
+
+		// 测试玩家代码是否有语法错误，是否定义了decide()函数
+		function test_code(){
+			// 停止之前正在运行的机器人或测试任务
+			stop_run();
+			let code = document.getElementById("code").value;
+			let output = document.getElementById("code_result");
+
+			// 尝试执行
+			try{
+				// 用前两个函数处理玩家的输入，存入用来存放decide()函数的变量:player_decide里
+				player_decide = load_player(compile_player(code));
+				output.textContent = "Code loaded successfully!";
+			}
+			catch (error) {
+				player_decide = null;
+				// 优先显示error.message，如果读取不到这个属性，就使用error本身
+				output.textContent = "Error: " + (error?.message ?? error);
+			}
+		}
+
+
+		//--------------------机器人动作与传感器--------------------
+		// draw参数表示是否在执行动作后更新显示，默认是true，为了100次测试时不需要每次都更新显示，节省性能
+		function turn_left(draw = true){
+			robot_direction = (robot_direction + 3) % 4;
+			if (draw) show_robot();
+		}
+
+		function turn_right(draw = true){
+			robot_direction = (robot_direction + 1) % 4;
+			if (draw) show_robot();
+		}
+
+		function forward(draw = true){
+			let newRow = robot_row + directions[robot_direction][0];
+			let newCol = robot_col + directions[robot_direction][1];
+
+			if (
+				newRow < 0 ||
+				newRow >= map.length ||
+				newCol < 0 ||
+				newCol >= map[0].length
+			){
+				return false;
+			}
+
+			if (map[newRow][newCol] === 1) {
+				return false;
+			}
+
+			robot_row = newRow;
+			robot_col = newCol;
+
+			if (draw) show_robot();
+
+			return true;
+		}
+
+		function is_clear(direction){
+			let newRow = robot_row + directions[direction][0];
+			let newCol = robot_col + directions[direction][1];
+
+			if (
+				newRow < 0 ||
+				newRow >= map.length ||
+				newCol < 0 ||
+				newCol >= map[0].length
+			) {
+				return false;
+			}
+
+			if (map[newRow][newCol] == 1) {
+				return false;
+			}
+
+			return true;
+		}
+
+		function get_sensors(){
+			let front = robot_direction;
+			let left = (robot_direction + 3) % 4;
+			let right = (robot_direction + 1) % 4;
+
+			return {
+				front_clear: is_clear(front),
+				left_clear: is_clear(left),
+				right_clear: is_clear(right)
+			};
+		}
+
+		function test_sensors(){
+			let sensors = get_sensors();
+
+			document.getElementById("code_result").textContent =
+				JSON.stringify(sensors, null, 4);
+		}
+
+		function execute_action(action, draw = true){
+
+			if (action == "forward"){
+				return forward(draw);
+			}
+			else if (action == "turn_left"){
+				turn_left(draw);
+				return true;
+			}
+			else if (action == "turn_right"){
+				turn_right(draw);
+				return true;
+			}
+		}
+
+
+		//--------------------机器人运行与评分--------------------
+		function at_goal(){
+			return robot_row === map.length - 1 && robot_col === map[0].length - 1;
+		}
+
+		function next_step(){
+			stop_run();
+			run_step();
+		}
+
+		function run_step(draw = true){
+			if (at_goal()){
+				return steps <= 40 ? 2 : 1;
+			}
+			if (steps >= 200){
+				return 0;
+			}
+
+			let output = draw ? document.getElementById("code_result") : null;
+			let sensors = get_sensors();
+
+			if (player_decide === null){
+				if (output) output.textContent = "Please click Test Code first!";
+				return;
+			}
+
+			let action;
+
+			try{
+				// 把这一步的三个传感器读数交给玩家函数，取回一个动作。
+				action = player_decide(
+					sensors.front_clear,
+					sensors.left_clear,
+					sensors.right_clear
+				);
+			}
+			catch (error){
+				if (output) output.textContent = "Runtime Error: " + (error?.message ?? error);
+				return 0;
+			}
+
+			if (!["forward", "turn_left", "turn_right"].includes(action)) {
+				if (output) output.textContent = "Invalid action: use forward, turn_left, or turn_right.";
+				return 0;
+			}
+
+			let success = execute_action(action, draw);
+
+			// 按动作尝试次数计步，所以即使前进时撞墙，这一步也会计入。
+			steps += 1;
+
+			if (output){
+				output.textContent = "Steps: " + steps +
+					"\nAction: " + action +
+					"\nSuccess: " + success;
+			}
+
+			// 先检查终点，第 200 个动作刚好到达也算成功。
+			if (at_goal()){
+				let score = steps <= 40 ? 2 : 1;
+				if (output) output.textContent += "\nGoal reached! Score: " + score;
+				return score;
+			}
+			if (steps >= 200){
+				if (output) output.textContent += "\nAction limit reached. Score: 0";
+				return 0;
+			}
+
+			return true;
+		}
+
+
+		//--------------------计时器, 暂停与重置系统--------------------
+		let run_timer = null;
+		let trial_timer = null;
+
+		function stop_run(){
+			clearInterval(run_timer);
+			run_timer = null;
+			if (trial_timer !== null) {
+				clearTimeout(trial_timer);
+				trial_timer = null;
+				document.getElementById("trials_btn").disabled = false;
+				document.getElementById("trial_result").textContent += "\nStopped. Only completed maps are counted.";
+			}
+		}
+
+		function reset_robot(){
+			robot_row = 0;
+			robot_col = 0;
+			robot_direction = 1;
+			steps = 0;
+		}
+
+		function reset_debug(){
+			stop_run();
+			reset_robot();
+			show_robot();
+			player_decide = null;
+			let code = document.getElementById("code").value;
+			let output = document.getElementById("code_result");
+			
+			try {
+				player_decide = load_player(compile_player(code));
+			}
+			catch (error) {
+				output.textContent = "Code error: " + (error?.message ?? error);
+				return;
+			}
+			output.textContent = "Steps: 0 | Position: (0, 0) | Facing: Right";
+		}
+
+		function run_code(){
+			if (run_timer !== null) return;
+
+			test_code();
+			if (player_decide === null) return;
+
+			reset_robot();
+			show_robot();
+
+			run_timer = setInterval(function(){
+				let result = run_step();
+				if (result !== true) {
+					stop_run();
+				}
+			}, 150);
+		}
+
+		function simulate_trial(make_decide){
+			// 一张测试地图用完就放回调试地图，连同暂停时的位置和玩家函数一起恢复。
+			let debug_state = { map, robot_row, robot_col, robot_direction, steps, player_decide };
+			try {
+				generate_map(10, 10);
+				reset_robot();
+				try{
+					player_decide = load_player(make_decide);
+				}
+				catch (error){
+					return { score: 0, actions: 0, message: String(error?.message ?? error) };
+				}
+				
+				let score;
+				do{
+					score = run_step(false);
+				} while (score === true);
+				return { score, actions: steps };
+			}
+			finally {
+				({ map, robot_row, robot_col, robot_direction, steps, player_decide } = debug_state);
+			}
+		}
+
+		function run_trials() {
+			if (trial_timer !== null) return;
+			stop_run();
+			let code = document.getElementById("code").value;
+			let output = document.getElementById("trial_result");
+			let button = document.getElementById("trials_btn");
+			let make_decide;
+			try {
+				make_decide = compile_player(code);
+			}
+			catch (error) {
+				output.textContent = "Challenge could not start: " + (error?.message ?? error);
+				return;
+			}
+
+			const total = 100;
+			let completed = 0;
+			let wins = 0;
+			let points = 0;
+			let actions = 0;
+			let errors = 0;
+			let first_error = "";
+			button.disabled = true;
+			output.textContent = "Testing: 0 / " + total;
+
+			// 每次只跑一张地图，让浏览器有机会显示进度并处理 Pause。
+			function next_trial(){
+				let result;
+				try {
+					result = simulate_trial(make_decide);
+				}
+				catch (error){
+					trial_timer = null;
+					button.disabled = false;
+					output.textContent += "\nChallenge stopped: " + (error?.message ?? error);
+					return;
+				}
+				completed += 1;
+				points += result.score;
+				actions += result.actions;
+				if (result.score > 0) wins++;
+				else if (result.actions < 200) {
+					errors++;
+					if (!first_error) first_error = result.message || "Use Next Step to inspect the player code.";
+				}
+
+				output.textContent = "Maps: " + completed + " / " + total +
+					" | Score: " + points + " / " + (completed * 2) +
+					"\nSuccess: " + wins + " / " + completed + " (" + (100 * wins / completed).toFixed(1) + "%)" +
+					" | Average actions: " + (actions / completed).toFixed(1) +
+					"\nFailures: " + (completed - wins) + " | Code errors: " + errors +
+					(first_error ? "\n" + first_error : "");
+				if (completed < total) {
+					trial_timer = setTimeout(next_trial, 0);
+				}
+				else {
+					trial_timer = null;
+					button.disabled = false;
+				}
+			}
+			trial_timer = setTimeout(next_trial, 0);
+		}
+
+		// 示例以源码保存，和玩家自己输入的程序走同一套编译、运行和评分流程。
+		const algorithm_examples = [
+			{
+				name: "Forward first",
+				code: `function decide(front_clear, left_clear, right_clear) {
+			if (front_clear) return "forward";
+			return "turn_right";
+		}`
+			},
+			{
+				name: "Follow the left wall",
+				code: `let move_next = false;
+
+		function decide(front_clear, left_clear, right_clear) {
+			// 转弯和前进是两个动作，记住刚刚选好的路口。
+			if (move_next) {
+				move_next = false;
+				return "forward";
+			}
+			if (left_clear) {
+				move_next = true;
+				return "turn_left";
+			}
+			if (front_clear) return "forward";
+			if (right_clear) {
+				move_next = true;
+				return "turn_right";
+			}
+			return "turn_right"; // 死路：先转一次，再根据新朝向判断。
+		}`
+			},
+			{
+				name: "Random explorer",
+				code: `let move_next = false;
+
+		function decide(front_clear, left_clear, right_clear) {
+			if (move_next) {
+				move_next = false;
+				return "forward";
+			}
+
+			// 只在传感器报告畅通的方向中抽一个；死路就先掉头。
+			const options = [];
+			if (front_clear) options.push("forward");
+			if (left_clear) options.push("turn_left");
+			if (right_clear) options.push("turn_right");
+			if (options.length === 0) return "turn_right";
+
+			const action = options[Math.floor(Math.random() * options.length)];
+			move_next = action !== "forward";
+			return action;
+		}`
+			},
+			{
+				name: "A* pathfinding",
+				code: `// 每张地图开始时，这些变量都会重新初始化。
+		const size = 10;
+		const cells = size * size;
+		const goal = cells - 1;
+		const memory = new Int8Array(cells).fill(-1); // -1 未知，0 空地，1 墙
+		memory[0] = memory[goal] = 0;
+
+		const dr = [-1, 0, 1, 0];
+		const dc = [0, 1, 0, -1];
+		let position = 0;
+		let facing = 1; // 上、右、下、左分别为 0、1、2、3
+
+		function neighbor(cell, direction) {
+			const row = Math.floor(cell / size) + dr[direction];
+			const col = cell % size + dc[direction];
+			if (row < 0 || row >= size || col < 0 || col >= size) return -1;
+			return row * size + col;
+		}
+
+		function observe(direction, clear) {
+			const cell = neighbor(position, direction);
+			if (cell >= 0) memory[cell] = clear ? 0 : 1;
+		}
+
+		function wallChance(cell) {
+			if (cell < 0 || memory[cell] === 1) return 1;
+			if (memory[cell] === 0) return 0;
+			return 0.3; // 游戏中每个普通格子的初始造墙概率
+		}
+
+		function planDirection() {
+			// 目标在右下。估计向右和向下都不通的风险，给容易绕路的格子加一点代价。
+			const penalty = new Float64Array(cells);
+			for (let cell = 0; cell < goal; cell++) {
+				const row = Math.floor(cell / size), col = cell % size;
+				const risk = wallChance(neighbor(cell, 1)) * wallChance(neighbor(cell, 2));
+				penalty[cell] = 4 * risk + 0.07 * Math.abs(row - col);
+			}
+
+			// A* 搜索把“同一格、不同朝向”当作不同状态。
+			// first 记住一条候选路线的第一步方向，找到终点后就能取出它。
+			const best = new Float64Array(cells * 4).fill(Infinity);
+			best[position * 4 + facing] = 0;
+			const open = [{cell: position, dir: facing, cost: 0, rank: 0, first: -1}];
+
+			while (open.length > 0) {
+				let index = 0;
+				for (let i = 1; i < open.length; i++) {
+					if (open[i].rank < open[index].rank) index = i;
+				}
+				const here = open[index];
+				open[index] = open[open.length - 1];
+				open.pop();
+
+				if (here.cost > best[here.cell * 4 + here.dir]) continue;
+				if (here.cell === goal) return here.first;
+
+				for (let dir = 0; dir < 4; dir++) {
+					const cell = neighbor(here.cell, dir);
+					if (cell < 0 || memory[cell] === 1) continue;
+					const difference = Math.abs(here.dir - dir);
+					const turns = Math.min(difference, 4 - difference);
+					// 这是选路用的权重。游戏实际仍然按每次转弯、前进各计一步。
+					const cost = here.cost + 1 + 0.5 * turns + penalty[cell];
+					const state = cell * 4 + dir;
+					if (cost >= best[state]) continue;
+					best[state] = cost;
+
+					const row = Math.floor(cell / size), col = cell % size;
+					const remaining = (size - 1 - row) + (size - 1 - col);
+					const first = here.first < 0 ? dir : here.first;
+					open.push({cell, dir, cost, rank: cost + remaining, first});
+				}
+			}
+			throw new Error("No route on the remembered board.");
+		}
+
+		function decide(front_clear, left_clear, right_clear) {
+			observe(facing, front_clear);
+			observe((facing + 3) % 4, left_clear);
+			observe((facing + 1) % 4, right_clear);
+
+			const wanted = planDirection();
+			if (wanted === facing) {
+				position = neighbor(position, facing);
+				return "forward";
+			}
+			if (wanted === (facing + 3) % 4) {
+				facing = wanted;
+				return "turn_left";
+			}
+			facing = (facing + 1) % 4; // 如果需要掉头，这次先转 90°
+			return "turn_right";
+		}`
+			}
+		];
+
+		function setup_examples() {
+			const select = document.getElementById("algorithm_choice");
+			const editor = document.getElementById("code");
+			let active = "My Code";
+			const drafts = new Map();
+
+			for (const example of algorithm_examples) {
+				select.add(new Option(example.name, example.name));
+				drafts.set(example.name, example.code);
+			}
+			select.value = active;
+
+			select.addEventListener("change", function () {
+				// 当前页面内，每个示例和 My Code 都保留各自最后一次编辑的内容。
+				drafts.set(active, editor.value);
+				active = select.value;
+				editor.value = drafts.get(active) ?? "";
+				reset_debug();
+				document.getElementById("trial_result").textContent = "";
+			});
+		}
+
+
+		create_map(10, 10);
+		setup_examples();
+		change_map_size();
+	</script>
+</body>
+</html>
