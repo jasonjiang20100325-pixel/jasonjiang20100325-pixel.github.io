@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quiz | Grid Games</title>
+    <style>
+        .quiz-panel {
+            width: 70%;
+            margin: 0 auto;
+        }
+
+        #back {
+            color: cyan;
+            background-color: black;
+            border-radius: 5px;
+        }
+
+        button {
+            cursor: pointer;
+            transition: 0.1s;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            background-color: lightblue;
+        }
+
+        /* Site navigation */
+        .site-nav {
+            background-color: #e5f2f7;
+            padding: 10px;
+            text-align: center;
+            line-height: 2;
+        }
+
+        .site-nav a {
+            margin: 0 8px;
+        }
+
+        .site-nav a,
+        .site-nav span {
+            white-space: nowrap;
+        }
+
+        .site-nav a[aria-current="page"] {
+            font-weight: bold;
+        }
+
+        .quiz-question {
+            border: 0;
+            margin: 0 0 1em;
+            min-width: 0;
+            padding: 0;
+        }
+
+        .quiz-question legend {
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="game1.html">Memory Match</a>
+        <a href="game2.html">Robot Maze</a>
+        <a href="quiz.html" aria-current="page">Quiz</a>
+    </nav>
+    <form id="quiz" class="quiz-panel" onsubmit="event.preventDefault(); checkQuiz()">
+        <h1>Grid Games Quiz</h1>
+        <p>Each question is worth 10 points. For a multi-select question, choose every correct answer and leave all other options unchecked to earn the points.</p>
+        <fieldset class="quiz-question">
+            <legend>1. Which JavaScript keyword can declare a variable that you can reassign while the game runs?</legend>
+            <input type="radio" name="js1" value="1a" id="1a">
+            <label for="1a">let</label>
+            <input type="radio" name="js1" value="1b" id="1b">
+            <label for="1b">const</label>
+            <input type="radio" name="js1" value="1c" id="1c">
+            <label for="1c">function</label>
+            <input type="radio" name="js1" value="1d" id="1d">
+            <label for="1d">return</label>
+        </fieldset>
+
+        <label for="select2">2. Robot Maze’s decide() function can return an action, and the game can store it in a variable.</label>
+        <br>
+        <select id="select2" name="js2">
+            <option value="" selected>Choose an answer</option>
+            <option value="true">True</option>
+            <option value="false">False</option>
+        </select>
+        <br><br>
+
+        <fieldset class="quiz-question">
+            <legend>3. Which JavaScript data types can represent an action name, a clear-or-blocked sensor, and a step count? Select all that apply.</legend>
+            <input type="checkbox" name="js3" value="3a" id="3a">
+            <label for="3a">String</label>
+            <input type="checkbox" name="js3" value="3b" id="3b">
+            <label for="3b">Boolean</label>
+            <input type="checkbox" name="js3" value="3c" id="3c">
+            <label for="3c">Number</label>
+            <input type="checkbox" name="js3" value="3d" id="3d">
+            <label for="3d">Picture</label>
+        </fieldset>
+
+        <fieldset class="quiz-question">
+            <legend>4. In Normal mode of Memory Match, 6 of the 8 pairs have been matched. If you know none of the remaining card positions and pick your next two cards at random, what is the chance of finishing in exactly 4 flips?</legend>
+            <input type="radio" name="js4" value="4a" id="4a">
+            <label for="4a">1/6</label>
+            <input type="radio" name="js4" value="4b" id="4b">
+            <label for="4b">1/4</label>
+            <input type="radio" name="js4" value="4c" id="4c">
+            <label for="4c">1/3</label>
+            <input type="radio" name="js4" value="4d" id="4d">
+            <label for="4d">1/2</label>
+        </fieldset>
+
+        <fieldset class="quiz-question">
+            <legend>5. Which are rules of Memory Match? Select all that apply.</legend>
+            <input type="checkbox" name="js5" value="5a" id="5a">
+            <label for="5a">Every flip earns a point.</label>
+            <br>
+            <input type="checkbox" name="js5" value="5b" id="5b">
+            <label for="5b">Matched cards stay face up.</label>
+            <br>
+            <input type="checkbox" name="js5" value="5c" id="5c">
+            <label for="5c">Unmatched cards flip back over.</label>
+            <br>
+            <input type="checkbox" name="js5" value="5d" id="5d">
+            <label for="5d">The timer keeps running after you win.</label>
+        </fieldset>
+
+        <label for="select6">6. In Robot Maze, moving one cell down increases the row number by 1, and moving one cell right decreases the column number by 1.</label>
+        <br>
+        <select id="select6" name="js6">
+            <option value="" selected>Choose an answer</option>
+            <option value="true">True</option>
+            <option value="false">False</option>
+        </select>
+        <br><br>
+
+        <fieldset class="quiz-question">
+            <legend>7. The robot reaches the flag in 24 steps. How many points does it earn?</legend>
+            <input type="radio" name="js7" value="7a" id="7a">
+            <label for="7a">0</label>
+            <input type="radio" name="js7" value="7b" id="7b">
+            <label for="7b">2</label>
+            <input type="radio" name="js7" value="7c" id="7c">
+            <label for="7c">1</label>
+            <input type="radio" name="js7" value="7d" id="7d">
+            <label for="7d">3</label>
+        </fieldset>
+
+        <fieldset class="quiz-question">
+            <legend>8. When does the timer start in Memory Match?</legend>
+            <input type="radio" name="js8" value="8a" id="8a">
+            <label for="8a">When the game page opens</label><br>
+            <input type="radio" name="js8" value="8b" id="8b">
+            <label for="8b">When you switch difficulty</label><br>
+            <input type="radio" name="js8" value="8c" id="8c">
+            <label for="8c">When you match the first pair</label><br>
+            <input type="radio" name="js8" value="8d" id="8d">
+            <label for="8d">When you flip the first card</label>
+        </fieldset>
+
+        <fieldset class="quiz-question">
+            <legend>9. Which button resets the robot to its starting position on the same maze?</legend>
+            <input type="radio" name="js9" value="9a" id="9a">
+            <label for="9a">Create Map</label>
+            <input type="radio" name="js9" value="9b" id="9b">
+            <label for="9b">Next Step</label>
+            <input type="radio" name="js9" value="9c" id="9c">
+            <label for="9c">Restart Game</label>
+            <input type="radio" name="js9" value="9d" id="9d">
+            <label for="9d">Run 100 Trials</label>
+        </fieldset>
+
+        <label for="js10">10. How many pairs do you need to match to win Memory Match in Hard mode?</label>
+        <br>
+        <input type="number" step="any" name="js10" id="js10">
+        <br>
+        <br>
+        <button type="submit" id="check-quiz">Check</button>
+    </form>
+
+    <div id="confirm" class="quiz-panel" hidden>
+        <h1 id="confirm-heading" tabindex="-1">Ready to see your score?</h1>
+        <button type="button" onclick="showResults()">Show Results</button>
+        <button type="button" onclick="editAnswers()">Review Answers</button>
+    </div>
+
+    <div id="results" class="quiz-panel" hidden>
+        <a href="quiz.html" id="back">Back</a>
+        <h1 id="score" tabindex="-1"></h1>
+        <p id="message"></p>
+        <img src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStTypnmNgYnBiNEugP93mXfkC8DGjLdYsuDg6_A3TcpSp_8k4oj0WQu0Q&s=10' id="dragon" alt="" hidden>
+    </div>
+
+    <script>
+        let mark = 0;
+
+        function checkQuiz() {
+            mark = 0;
+
+            if (document.getElementById('1a').checked) mark += 10;
+            if (document.getElementById('select2').value === 'true') mark += 10;
+
+            if (document.getElementById('3a').checked &&
+                document.getElementById('3b').checked &&
+                document.getElementById('3c').checked &&
+                !document.getElementById('3d').checked) {
+                mark += 10;
+            }
+
+            if (document.getElementById('4c').checked) mark += 10;
+
+            if (!document.getElementById('5a').checked &&
+                document.getElementById('5b').checked &&
+                document.getElementById('5c').checked &&
+                !document.getElementById('5d').checked) {
+                mark += 10;
+            }
+
+            if (document.getElementById('select6').value === 'false') mark += 10;
+            if (document.getElementById('7b').checked) mark += 10;
+            if (document.getElementById('8d').checked) mark += 10;
+            if (document.getElementById('9c').checked) mark += 10;
+            if (document.getElementById('js10').valueAsNumber === 12) mark += 10;
+
+            document.getElementById('quiz').hidden = true;
+            document.getElementById('confirm').hidden = false;
+            document.getElementById('confirm-heading').focus();
+        }
+
+        function showResults() {
+            document.getElementById('confirm').hidden = true;
+            document.getElementById('results').hidden = false;
+            const score = document.getElementById('score');
+            score.textContent = mark + '/100';
+
+            const message = document.getElementById('message');
+            if (mark === 100) {
+                message.textContent = 'Excellent job!';
+            } else if (mark >= 80) {
+                message.textContent = 'Great job!';
+            } else if (mark >= 50) {
+                message.textContent = 'Keep working!';
+            } else {
+                message.textContent = 'Try again!';
+            }
+            document.getElementById('dragon').hidden = mark >= 50;
+            score.focus();
+        }
+
+        function editAnswers() {
+            document.getElementById('confirm').hidden = true;
+            document.getElementById('quiz').hidden = false;
+            document.getElementById('check-quiz').focus();
+        }
+    </script>
+</body>
+</html>
